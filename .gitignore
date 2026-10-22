@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+.env
+results/
+skill-upload.zip
+skill-upload.json

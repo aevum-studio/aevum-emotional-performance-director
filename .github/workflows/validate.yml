@@ -1,0 +1,34 @@
+name: Validate skill
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate source and package
+        run: python scripts/validate_skill.py
+      - name: Run regression tests
+        run: python -m unittest discover -s tests -v
+      - name: Check every JSONL row
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows = [json.loads(line) for line in Path("evals/cases.jsonl").read_text().splitlines() if line.strip()]
+          assert len(rows) >= 50, f"expected at least 50 cases, found {len(rows)}"
+          assert len({row["id"] for row in rows}) == len(rows), "duplicate case id"
+          for row in rows:
+              assert isinstance(row["should_activate"], bool)
+              assert row["prompt"] and row["criteria"]
+          print(f"Validated {len(rows)} behavior cases.")
+          PY

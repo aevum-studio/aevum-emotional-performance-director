@@ -1,0 +1,62 @@
+name: Behavior evaluations
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Task model
+        required: true
+        default: gpt-6-astra
+        type: string
+      judge_model:
+        description: Judge model
+        required: true
+        default: gpt-6-astra
+        type: string
+      case_limit:
+        description: Number of cases; 0 runs all cases
+        required: true
+        default: "5"
+        type: string
+      workers:
+        description: Parallel API workers (1-16)
+        required: true
+        default: "2"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      RUN_LIVE_EVALS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Require API key
+        run: test -n "$OPENAI_API_KEY"
+      - name: Run structural checks first
+        run: |
+          python scripts/validate_skill.py
+          python -m unittest discover -s tests -v
+      - name: Run behavioral evaluations
+        run: >-
+          python scripts/run_behavior_evals.py
+          --model "${{ inputs.model }}"
+          --judge-model "${{ inputs.judge_model }}"
+          --limit "${{ inputs.case_limit }}"
+          --workers "${{ inputs.workers }}"
+          --output results
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aevum-eval-results-${{ github.run_id }}
+          path: results/
+          if-no-files-found: warn

@@ -1,0 +1,4 @@
+interface:
+  display_name: "AEVUM Emotional Performance Director"
+  short_description: "Direct emotionally grounded screen performances"
+  default_prompt: "Use $aevum-emotional-performance-director to strengthen the character motivation, performance beats, and emotional continuity in this scene."
